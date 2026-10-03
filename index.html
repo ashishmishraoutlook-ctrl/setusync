@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f172a">
+<title>SetuSync — Offline Memory for Search</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f6f8fb;color:#0f172a}
+.wrap{max-width:980px;margin:auto;padding:28px 18px 60px}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;color:#64748b}.top h1{font-size:clamp(34px,7vw,58px);line-height:1.02;margin:9px 0 12px;letter-spacing:-.04em}.sub{color:#475569;max-width:690px;font-size:17px;line-height:1.5}.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;padding:9px 13px;font-weight:800;font-size:13px;white-space:nowrap}.dot{width:9px;height:9px;border-radius:50%;background:#16a34a}.offline .dot{background:#ef4444}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:20px;box-shadow:0 10px 35px rgba(15,23,42,.06)}.search{margin-top:26px;padding:16px}.row{display:flex;gap:10px}.row input{flex:1;border:1px solid #cbd5e1;border-radius:14px;padding:15px 16px;font-size:16px;outline:none}.row input:focus{border-color:#64748b;box-shadow:0 0 0 3px rgba(100,116,139,.12)}button{border:0;border-radius:13px;padding:13px 16px;font-weight:800;cursor:pointer} .primary{background:#0f172a;color:#fff}.secondary{background:#e2e8f0;color:#0f172a}.hint{display:flex;justify-content:space-between;gap:10px;color:#64748b;font-size:13px;padding:11px 3px 2px}.link{background:none;padding:0;color:#334155;text-decoration:underline}
+.banner{margin-top:16px;padding:15px 17px;border-radius:16px;display:flex;justify-content:space-between;gap:10px;align-items:center}.live{background:#ecfdf5;border:1px solid #bbf7d0}.local{background:#eff6ff;border:1px solid #bfdbfe}.stale{background:#fffbeb;border:1px solid #fde68a}.miss{background:#fff1f2;border:1px solid #fecdd3}.banner strong{display:block}.banner span{display:block;color:#64748b;font-size:13px;margin-top:3px}
+.results{margin-top:14px;display:grid;gap:10px}.result{padding:18px}.result .n{float:left;width:28px;color:#94a3b8;font-weight:900}.result h3{margin:0 0 5px;font-size:17px}.result a{color:#0f172a}.url{color:#64748b;font-size:12px}.result p{color:#475569;line-height:1.5;margin:8px 0 0}.empty{margin-top:14px;padding:24px;text-align:center}.empty h2{margin:5px 0}.muted{color:#64748b}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}.box{padding:18px}.box h2{margin:4px 0 8px;font-size:18px}.steps{display:grid;gap:9px}.step{display:flex;gap:10px;align-items:center;padding:11px;border:1px solid #e2e8f0;border-radius:12px}.num{width:25px;height:25px;border-radius:50%;background:#0f172a;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:900}.history{margin-top:14px;padding:18px}.history-head{display:flex;justify-content:space-between;align-items:center}.history-list{display:grid;gap:7px;margin-top:10px}.history-item{display:flex;justify-content:space-between;gap:12px;text-align:left;width:100%;background:#f8fafc;border:1px solid #e2e8f0}.history-item small{color:#64748b}.warning{margin-top:14px;padding:13px 15px;background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;color:#9a3412}
+footer{margin-top:28px;color:#64748b;font-size:12px;display:flex;justify-content:space-between;gap:10px}
+@media(max-width:700px){.top{display:block}.pill{margin-top:14px}.row{flex-direction:column}.grid{grid-template-columns:1fr}.hint{display:block}.hint span{display:block;margin-top:5px}footer{display:block}footer span{display:block;margin-top:5px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="eyebrow">SETUSYNC MVP · WEB DEMO</div>
+      <h1>Offline memory for search.</h1>
+      <p class="sub">Acquire information while connected. Keep it on the device. Search it again when the connection disappears.</p>
+    </div>
+    <div id="mode" class="pill"><span class="dot"></span><span>ONLINE</span></div>
+  </div>
+
+  <section class="card search">
+    <div class="row">
+      <input id="q" value="PM Kisan eligibility" placeholder="Search something you want to remember offline">
+      <button id="searchBtn" class="primary">Search</button>
+    </div>
+    <div class="hint">
+      <span>Try: <button class="link" data-q="PM Kisan eligibility">PM Kisan eligibility</button> · <button class="link" data-q="crop insurance scheme">crop insurance scheme</button></span>
+      <span>Cached searches: <strong id="count">0</strong></span>
+    </div>
+  </section>
+
+  <div id="banner"></div>
+  <div id="warning"></div>
+  <section id="results" class="results"></section>
+
+  <section id="empty" class="card empty" style="display:none">
+    <div class="eyebrow">LOCAL KNOWLEDGE MISS</div>
+    <h2>Not available offline</h2>
+    <p class="muted">This query has not been acquired on this device yet. Connect once and search it to save it locally.</p>
+  </section>
+
+  <div class="grid">
+    <section class="card box">
+      <div class="eyebrow">DEMO CONTROL</div>
+      <h2>Prove the offline path</h2>
+      <p class="muted">The button simulates a sudden connectivity drop. A real network drop also works after this page has loaded.</p>
+      <div class="row">
+        <button id="toggle" class="secondary">Simulate Offline</button>
+        <button id="clear" class="secondary">Clear Local Memory</button>
+      </div>
+    </section>
+    <section class="card box">
+      <div class="eyebrow">FLOW</div>
+      <div class="steps">
+        <div class="step"><span class="num">1</span><span>Online search acquires a result</span></div>
+        <div class="step"><span class="num">2</span><span>Result is persisted in IndexedDB</span></div>
+        <div class="step"><span class="num">3</span><span>Offline search reads local memory</span></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card history">
+    <div class="history-head"><div><div class="eyebrow">LOCAL MEMORY</div><h2 style="margin:5px 0 0">Recently acquired searches</h2></div><strong id="count2">0</strong></div>
+    <div id="historyList" class="history-list"></div>
+  </section>
+
+  <footer><span>SetuSync · local-first search layer</span><span>Web demo uses IndexedDB + deterministic demo provider</span></footer>
+</div>
+
+<script>
+const DB='setusync-demo', STORE='searches';
+let simulatedOffline=false;
+
+function openDb(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE,{keyPath:'key'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function all(){const db=await openDb();return new Promise((res,rej)=>{const r=db.transaction(STORE,'readonly').objectStore(STORE).getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function get(key){const xs=await all();return xs.find(x=>x.key===key)}
+async function put(v){const db=await openDb();return new Promise((res,rej)=>{const r=db.transaction(STORE,'readwrite').objectStore(STORE).put(v);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+async function clear(){const db=await openDb();return new Promise((res,rej)=>{const r=db.transaction(STORE,'readwrite').objectStore(STORE).clear();r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+function norm(q){return q.normalize('NFKC').trim().toLowerCase().replace(/\s+/g,' ')}
+function key(q){return norm(q)}
+function setMode(){const off=simulatedOffline||!navigator.onLine;const el=document.getElementById('mode');el.className='pill '+(off?'offline':'');el.innerHTML='<span class="dot"></span><span>'+(off?'OFFLINE':'ONLINE')+'</span>';document.getElementById('toggle').textContent=simulatedOffline?'Simulate Online':'Simulate Offline'}
+function demoResults(q){const n=norm(q);const now=new Date().toISOString();return {key:key(q),query:q,retrievedAt:now,expiresAt:new Date(Date.now()+7*86400000).toISOString(),results:[
+{title:q+' — SetuSync demo result',url:'https://example.com/setusync-demo',displayedLink:'example.com/setusync-demo',snippet:'A stored search result acquired while connected. This demo result is intentionally deterministic so the offline path can be tested without an API key.',position:1},
+{title:'Offline search concept',url:'https://example.com/offline-search',displayedLink:'example.com/offline-search',snippet:'SetuSync keeps previously acquired search information on the device and makes it searchable after connectivity is lost.',position:2},
+{title:'Search capsule metadata',url:'https://example.com/search-capsule',displayedLink:'example.com/search-capsule',snippet:'Every local result records when it was acquired so offline users can distinguish stored information from live information.',position:3}
+],source:'DEMO_PROVIDER'}}
+
+function renderResults(v,status){document.getElementById('empty').style.display='none';document.getElementById('results').innerHTML=v.results.map(r=>'<article class="card result"><div class="n">'+r.position+'</div><h3><a href="'+r.url+'" target="_blank" rel="noreferrer">'+escapeHtml(r.title)+'</a></h3><div class="url">'+escapeHtml(r.displayedLink)+'</div><p>'+escapeHtml(r.snippet)+'</p></article>').join('');const b=document.getElementById('banner');const cls=status==='LIVE_SAVED'?'live':status==='LOCAL_CACHE'?'local':'stale';const label=status==='LIVE_SAVED'?'LIVE → SAVED LOCALLY':status==='LOCAL_CACHE'?'LOCAL CACHE':'LOCAL STALE';b.className='banner '+cls;b.innerHTML='<div><strong>'+label+'</strong><span>Retrieved '+new Date(v.retrievedAt).toLocaleString()+'</span></div><strong>'+v.results.length+' results</strong>'}
+function showMiss(){document.getElementById('results').innerHTML='';document.getElementById('banner').className='';document.getElementById('banner').innerHTML='';document.getElementById('empty').style.display='block'}
+function showWarning(s){document.getElementById('warning').innerHTML=s?'<div class="warning">'+escapeHtml(s)+'</div>':''}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+async function doSearch(){const q=document.getElementById('q').value.trim();if(!q)return;showWarning('');const offline=simulatedOffline||!navigator.onLine;const local=await get(key(q));if(offline){if(local){const stale=new Date(local.expiresAt).getTime()<Date.now();renderResults(local,stale?'LOCAL_STALE':'LOCAL_CACHE')}else{showMiss()}}else{if(local){renderResults(local,'LOCAL_CACHE')}else{const v=demoResults(q);await put(v);renderResults(v,'LIVE_SAVED')}}await refresh()}
+async function refresh(){const xs=await all();document.getElementById('count').textContent=xs.length;document.getElementById('count2').textContent=xs.length;document.getElementById('historyList').innerHTML=xs.sort((a,b)=>b.retrievedAt.localeCompare(a.retrievedAt)).slice(0,8).map(x=>'<button class="history-item" data-q="'+encodeURIComponent(x.query)+'"><span>'+escapeHtml(x.query)+'</span><small>'+new Date(x.retrievedAt).toLocaleString()+'</small></button>').join('');document.querySelectorAll('.history-item').forEach(b=>b.onclick=()=>{document.getElementById('q').value=decodeURIComponent(b.dataset.q);doSearch()})}
+document.getElementById('searchBtn').onclick=doSearch;document.getElementById('q').onkeydown=e=>{if(e.key==='Enter')doSearch()};document.getElementById('toggle').onclick=()=>{simulatedOffline=!simulatedOffline;setMode()};document.getElementById('clear').onclick=async()=>{await clear();showWarning('Local memory cleared.');showMiss();refresh()};document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{document.getElementById('q').value=b.dataset.q;doSearch()});window.addEventListener('online',setMode);window.addEventListener('offline',setMode);setMode();refresh();
+</script>
+</body>
+</html>
